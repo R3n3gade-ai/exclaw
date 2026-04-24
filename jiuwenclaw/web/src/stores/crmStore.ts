@@ -116,8 +116,10 @@ interface CrmState extends CrmSnapshot {
   addCustomColumn: (label: string) => void;
   addLead: (input: CreateLeadInput) => void;
   updateLead: (leadId: string, updates: Partial<Omit<CrmLead, 'id' | 'notes' | 'customFields' | 'createdAt'>>) => void;
+  deleteLead: (leadId: string) => void;
   updateLeadCustomField: (leadId: string, fieldKey: string, value: string) => void;
   addLeadNote: (leadId: string, body: string) => void;
+  deleteLeadNote: (leadId: string, noteId: string) => void;
   openLead: (leadId: string) => void;
   closeLead: () => void;
   importCsv: (content: string) => number;
@@ -647,6 +649,14 @@ export const useCrmStore = create<CrmState>((set) => ({
     }));
   },
 
+  deleteLead: (leadId) => {
+    commitSnapshot(set, (state) => ({
+      ...state,
+      leads: state.leads.filter((lead) => lead.id !== leadId),
+      detailLeadId: state.detailLeadId === leadId ? null : state.detailLeadId,
+    }));
+  },
+
   updateLead: (leadId, updates) => {
     commitSnapshot(set, (state) => ({
       ...state,
@@ -671,6 +681,20 @@ export const useCrmStore = create<CrmState>((set) => ({
               ...lead,
               customFields: { ...lead.customFields, [fieldKey]: value },
               updatedAt: nowIso(),
+            }
+          : lead
+      ),
+    }));
+  },
+
+  deleteLeadNote: (leadId, noteId) => {
+    commitSnapshot(set, (state) => ({
+      ...state,
+      leads: state.leads.map((lead) =>
+        lead.id === leadId
+          ? {
+              ...lead,
+              notes: lead.notes.filter((n) => n.id !== noteId),
             }
           : lead
       ),

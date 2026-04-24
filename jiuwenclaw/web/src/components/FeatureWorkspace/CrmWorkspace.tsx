@@ -116,6 +116,7 @@ export function CrmWorkspace({ onExit }: CrmWorkspaceProps) {
     updateLead,
     updateLeadCustomField,
     addLeadNote,
+    deleteLeadNote,
     openLead,
     closeLead,
     importMappedCsv,
@@ -212,6 +213,28 @@ export function CrmWorkspace({ onExit }: CrmWorkspaceProps) {
     setCsvImportOpen(true);
   }
 
+  
+  function handleExportCsv() {
+    if (filteredLeads.length === 0) return;
+    const headerRow = columns.filter(c => c.visible).map(c => `"${c.label.replace(/"/g, '""')}"`).join(',');
+    const rows = filteredLeads.map((lead: CrmLead) => {
+      return columns.filter(c => c.visible).map(c => {
+        const val = String(formatColumnValue(lead, c.key) || '').replace(/"/g, '""');
+        return `"${val}"`;
+      }).join(',');
+    });
+    const csvContent = [headerRow, ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `leads_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
   function handleAddCustomColumn() {
     if (!customColumnLabel.trim()) return;
     addCustomColumn(customColumnLabel);
@@ -257,7 +280,10 @@ export function CrmWorkspace({ onExit }: CrmWorkspaceProps) {
               Back to workspace
             </button>
             <button type="button" className="feature-crm__bulk-button" onClick={() => bulkUploadRef.current?.click()}>
-              Bulk leads
+              Import CSV
+            </button>
+            <button type="button" className="feature-crm__bulk-button" onClick={handleExportCsv}>
+              Export CSV
             </button>
             <input
               ref={bulkUploadRef}
@@ -731,7 +757,16 @@ export function CrmWorkspace({ onExit }: CrmWorkspaceProps) {
                 {selectedLead.notes.map((note) => (
                   <article key={note.id} className="feature-crm__note-card">
                     <p>{note.body}</p>
-                    <span>{formatDateLabel(note.createdAt)}</span>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.25rem' }}>
+                      <span>{formatDateLabel(note.createdAt)}</span>
+                      <button 
+                        type="button" 
+                        onClick={() => deleteLeadNote(selectedLead.id, note.id)}
+                        style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', fontSize: '0.75rem', opacity: 0.8 }}
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </article>
                 ))}
                 {selectedLead.notes.length === 0 ? <p className="feature-crm__helper">No notes yet.</p> : null}
