@@ -5,7 +5,8 @@ import { KanbanWorkspace } from './KanbanWorkspace';
 import { LeadGenWorkspace } from './LeadGenWorkspace';
 import { ProjectFlowWorkspace } from './ProjectFlowWorkspace';
 import { SocialStationWorkspace } from './SocialStationWorkspace';
-import { VideoMeetingWorkspace } from './VideoMeetingWorkspace';
+import { MeetingWorkspace as VideoMeetingWorkspace } from './MeetingWorkspace';
+import { AppBuilderWorkspace } from './AppBuilderWorkspace';
 
 const CreativeStudioWorkspace = lazy(async () => {
   const module = await import('./CreativeStudioWorkspace');
@@ -24,4 +25,5 @@ export const FEATURE_WORKSPACE_COMPONENTS: Record<FeatureKey, ComponentType<Feat
   leadGen: LeadGenWorkspace,
   videoMeeting: VideoMeetingWorkspace,
   projectFlow: ProjectFlowWorkspace,
+  appBuilder: AppBuilderWorkspace,
 };

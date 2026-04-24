@@ -7,7 +7,8 @@ export type FeatureKey =
   | 'crm'
   | 'leadGen'
   | 'videoMeeting'
-  | 'projectFlow';
+  | 'projectFlow'
+  | 'appBuilder';
 
 export const FEATURE_ORDER: FeatureKey[] = [
   'kanban',
@@ -17,6 +18,7 @@ export const FEATURE_ORDER: FeatureKey[] = [
   'leadGen',
   'videoMeeting',
   'projectFlow',
+  'appBuilder',
 ];
 
 export const FEATURE_LABELS: Record<FeatureKey, string> = {
@@ -27,6 +29,7 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   leadGen: 'Lead Gen',
   videoMeeting: 'Video Meeting',
   projectFlow: 'Project Flow',
+  appBuilder: 'App Builder',
 };
 
 interface FeatureState {

@@ -20,12 +20,9 @@ import { BrowserPanel } from './components/BrowserPanel';
 import { UpdatePanel } from './components/UpdatePanel';
 import { StatusBar } from './components/StatusBar';
 import { ExtensionsPanel } from './components/ExtensionsPanel';
-import { SocialStationWorkspace } from './components/FeatureWorkspace/SocialStationWorkspace';
-import { AppBuilderWorkspace } from './components/FeatureWorkspace/AppBuilderWorkspace';
-import { CrmWorkspace } from './components/FeatureWorkspace/CrmWorkspace';
-import { KanbanWorkspace } from './components/FeatureWorkspace/KanbanWorkspace';
-import { ProjectFlowWorkspace } from './components/FeatureWorkspace/projectFlow/ProjectFlowWorkspace';
-import { MeetingWorkspace } from './components/FeatureWorkspace/MeetingWorkspace';
+import { FeatureWorkspace } from './components/FeatureWorkspace';
+import { useFeatureStore } from './stores/featureStore';
+
 import { FEATURE_APP_UPDATER_UI } from './featureFlags';
 import { HeartbeatMessageModal } from './features/HeartbeatMessageModal';
 import {
@@ -46,7 +43,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
 import './App.css';
 
-type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'meetings' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
+type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
 
 // 错误边界组件
 interface ErrorBoundaryState {
@@ -249,13 +246,8 @@ function AppContent() {
   const [heartbeatModalOpen, setHeartbeatModalOpen] = useState(false);
   const [hasVisitedSkills, setHasVisitedSkills] = useState(false);
   const [hasVisitedChannels, setHasVisitedChannels] = useState(false);
-  const [hasVisitedSocialStation, setHasVisitedSocialStation] = useState(false);
-  const [hasVisitedAppBuilder, setHasVisitedAppBuilder] = useState(false);
-  const [hasVisitedCrm, setHasVisitedCrm] = useState(false);
-  const [hasVisitedKanban, setHasVisitedKanban] = useState(false);
-  const [hasVisitedProjectFlow, setHasVisitedProjectFlow] = useState(false);
-  const [hasVisitedMeetings, setHasVisitedMeetings] = useState(false);
   const startupUpdateCheckRef = useRef(false);
+
   /** 从 SkillNet 等入口跳转配置页时，首次展开对应配置分组（如第三方服务） */
   const [configInitialExpandGroup, setConfigInitialExpandGroup] = useState<string | null>(null);
   useEffect(() => {
@@ -314,6 +306,7 @@ function AppContent() {
     setPaused,
   } = useChatStore();
   const { clearTodos } = useTodoStore();
+  const activeFeature = useFeatureStore(state => state.activeFeature);
 
   // WebSocket 连接 - provider 由后端配置决定 - provider 由后端配置决定，前端默认不在 URL query 传递
   const {
@@ -910,12 +903,7 @@ function AppContent() {
     setActiveNav(nav);
     if (nav === 'skills') setHasVisitedSkills(true);
     if (nav === 'channels') setHasVisitedChannels(true);
-    if (nav === 'socialstation') setHasVisitedSocialStation(true);
-    if (nav === 'appbuilder') setHasVisitedAppBuilder(true);
-    if (nav === 'crm') setHasVisitedCrm(true);
-    if (nav === 'kanban') setHasVisitedKanban(true);
-    if (nav === 'projectflow') setHasVisitedProjectFlow(true);
-    if (nav === 'meetings') setHasVisitedMeetings(true);
+
   }, []);
 
   const heartbeatToastPreviewRaw = heartbeatToastMessage.replace(/\s+/g, ' ').trim();
@@ -979,7 +967,11 @@ function AppContent() {
         {activeNav === 'chat' && (
           <>
             <div className="flex-1 flex min-h-0 overflow-hidden">
-              {/* Chat Panel */}
+              {activeFeature ? (
+                <FeatureWorkspace onExit={() => useFeatureStore.getState().closeFeature()} />
+              ) : (
+                <>
+                  {/* Chat Panel */}
               <div className="flex-1 flex flex-col min-w-0 min-h-0">
                 <div className="flex-1 min-h-0">
                   <ChatPanel
@@ -1013,7 +1005,9 @@ function AppContent() {
               </div>
 
               {/* Tool Panel */}
-              <ToolPanel />
+                  <ToolPanel />
+                </>
+              )}
             </div>
           </>
         )}
@@ -1085,36 +1079,7 @@ function AppContent() {
             <ChannelsPanel isConnected={isConnected} />
           </div>
         )}
-        {hasVisitedSocialStation && (
-          <div className={`app-section ${activeNav === 'socialstation' ? '' : 'is-hidden'}`}>
-            <SocialStationWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
-        {hasVisitedAppBuilder && (
-          <div className={`app-section ${activeNav === 'appbuilder' ? '' : 'is-hidden'}`}>
-            <AppBuilderWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
-        {hasVisitedCrm && (
-          <div className={`app-section ${activeNav === 'crm' ? '' : 'is-hidden'}`}>
-            <CrmWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
-        {hasVisitedKanban && (
-          <div className={`app-section ${activeNav === 'kanban' ? '' : 'is-hidden'}`}>
-            <KanbanWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
-        {hasVisitedProjectFlow && (
-          <div className={`app-section ${activeNav === 'projectflow' ? '' : 'is-hidden'}`}>
-            <ProjectFlowWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
-        {hasVisitedMeetings && (
-          <div className={`app-section ${activeNav === 'meetings' ? '' : 'is-hidden'}`}>
-            <MeetingWorkspace onExit={() => setActiveNav('chat')} />
-          </div>
-        )}
+
 
         {activeNav === 'extensions' && (
           <div className="app-section">
