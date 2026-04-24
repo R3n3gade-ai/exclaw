@@ -315,6 +315,10 @@ class _SpaStaticHandler(SimpleHTTPRequestHandler):
     def _is_ws_route(self) -> bool:
         return urlparse(self.path).path.startswith("/ws")
 
+
+    def _is_preview_api_route(self) -> bool:
+        return urlparse(self.path).path.startswith("/preview-api/")
+
     def _is_file_api_route(self) -> bool:
         return urlparse(self.path).path.startswith("/file-api/")
 
@@ -684,6 +688,45 @@ class _SpaStaticHandler(SimpleHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if self._is_preview_api_route():
+            self._handle_preview_api_get(parsed)
+            return
+
+    def _handle_preview_api_get(self, parsed) -> None:
+        path = parsed.path
+        req_path = unquote(path[len("/preview-api/"):])
+        ws_dir = (self.project_root / 'app_builder_workspace').resolve()
+        if not req_path:
+            req_path = "index.html"
+        
+        full_path = (ws_dir / req_path).resolve()
+        try:
+            if not os.path.commonpath([str(ws_dir), str(full_path)]) == str(ws_dir):
+                self.send_error(403, "forbidden")
+                return
+        except ValueError:
+            self.send_error(403, "forbidden")
+            return
+            
+        if not full_path.exists():
+            self.send_error(404, "not found")
+            return
+            
+        try:
+            data = full_path.read_bytes()
+            mime_type = self.guess_type(str(full_path))
+            self.send_response(200)
+            self.send_header("Content-Type", mime_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(data)
+        except OSError as exc:
+            self.send_error(500, str(exc))
+
         if self._is_file_api_route():
             self._handle_file_api_get(parsed)
             return
@@ -693,6 +736,42 @@ class _SpaStaticHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+
+    def _handle_preview_api_get(self, parsed) -> None:
+        path = parsed.path
+        req_path = unquote(path[len("/preview-api/"):])
+        ws_dir = (self.project_root / 'app_builder_workspace').resolve()
+        if not req_path:
+            req_path = "index.html"
+        
+        full_path = (ws_dir / req_path).resolve()
+        try:
+            if not os.path.commonpath([str(ws_dir), str(full_path)]) == str(ws_dir):
+                self.send_error(403, "forbidden")
+                return
+        except ValueError:
+            self.send_error(403, "forbidden")
+            return
+            
+        if not full_path.exists():
+            self.send_error(404, "not found")
+            return
+            
+        try:
+            data = full_path.read_bytes()
+            mime_type = self.guess_type(str(full_path))
+            self.send_response(200)
+            self.send_header("Content-Type", mime_type)
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(data)
+        except OSError as exc:
+            self.send_error(500, str(exc))
+
         if self._is_file_api_route():
             self._handle_file_api_post(parsed)
             return
