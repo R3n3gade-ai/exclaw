@@ -15,7 +15,7 @@ import { TeamTaskEvents } from '../TeamTaskEvents';
 import { FEATURE_ORDER, useFeatureStore } from '../../stores/featureStore';
 import './ToolPanel.css';
 
-type ToolTabKey = 'tasks' | 'blank-1' | 'blank-2';
+type ToolTabKey = 'tasks' | 'connections' | 'features';
 
 export function ToolPanel() {
   const { t } = useTranslation();
@@ -124,6 +124,44 @@ export function ToolPanel() {
     </div>
   );
 
+  
+  const renderConnectionsPanel = () => (
+    <div className="toolpanel-features">
+      <div className="toolpanel-feature-grid" style={{ gridTemplateColumns: 'repeat(1, 1fr)' }}>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>GitHub</h4>
+          <p className="text-sm text-text-muted mb-3">Connect to GitHub to manage repositories, read issues, and create PRs.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Google Workspace</h4>
+          <p className="text-sm text-text-muted mb-3">Connect to Gmail and Google Drive to read/write documents and emails.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Airtable</h4>
+          <p className="text-sm text-text-muted mb-3">Connect to Airtable bases as databases for your agent.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Figma</h4>
+          <p className="text-sm text-text-muted mb-3">Read design tokens, components, and layouts directly from Figma.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Slack</h4>
+          <p className="text-sm text-text-muted mb-3">Monitor channels and send messages directly to your Slack workspace.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+        <div className="toolpanel-feature-card" style={{ padding: '1.25rem', textAlign: 'left', alignItems: 'flex-start' }}>
+          <h4 className="toolpanel-feature-card__title" style={{ fontSize: '1.1rem', marginBottom: '0.25rem' }}>Meta Ads</h4>
+          <p className="text-sm text-text-muted mb-3">Control ad campaigns, check metrics, and optimize spend.</p>
+          <button className="btn primary" style={{ alignSelf: 'stretch', padding: '0.5rem' }}>Connect</button>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderFeaturesPanel = () => (
     <div className="toolpanel-features">
       <div className="toolpanel-feature-grid">
@@ -162,17 +200,17 @@ export function ToolPanel() {
           </button>
           <button
             type="button"
-            className={`toolpanel-tab ${activeTab === 'blank-1' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('blank-1')}
+            className={`toolpanel-tab ${activeTab === 'connections' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('connections')}
           >
             {t('toolPanel.tabs.connections')}
           </button>
           <button
             type="button"
-            className={`toolpanel-tab ${activeTab === 'blank-2' ? 'is-active' : ''}`}
-            onClick={() => setActiveTab('blank-2')}
+            className={`toolpanel-tab ${activeTab === 'features' ? 'is-active' : ''}`}
+            onClick={() => setActiveTab('features')}
           >
-            {t('toolPanel.tabs.features')}
+            {t('toolPanel.tabs.features', 'FEATURES')}
           </button>
         </div>
 
@@ -259,7 +297,7 @@ export function ToolPanel() {
               </div>
             </div>
           </>
-        ) : activeTab === 'blank-2' ? renderFeaturesPanel() : renderPlaceholder()}
+        ) : activeTab === 'connections' ? renderConnectionsPanel() : activeTab === 'features' ? renderFeaturesPanel() : renderPlaceholder()}
       </div>
       <HeartbeatMessageModal
         open={heartbeatModalOpen}
