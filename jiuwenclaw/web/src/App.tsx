@@ -21,6 +21,7 @@ import { UpdatePanel } from './components/UpdatePanel';
 import { StatusBar } from './components/StatusBar';
 import { ExtensionsPanel } from './components/ExtensionsPanel';
 import { SocialStationWorkspace } from './components/FeatureWorkspace/SocialStationWorkspace';
+import { AppBuilderWorkspace } from './components/FeatureWorkspace/AppBuilderWorkspace';
 import { FEATURE_APP_UPDATER_UI } from './featureFlags';
 import { HeartbeatMessageModal } from './features/HeartbeatMessageModal';
 import {
@@ -41,7 +42,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
 import './App.css';
 
-type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
+type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
 
 // 错误边界组件
 interface ErrorBoundaryState {
@@ -245,6 +246,7 @@ function AppContent() {
   const [hasVisitedSkills, setHasVisitedSkills] = useState(false);
   const [hasVisitedChannels, setHasVisitedChannels] = useState(false);
   const [hasVisitedSocialStation, setHasVisitedSocialStation] = useState(false);
+  const [hasVisitedAppBuilder, setHasVisitedAppBuilder] = useState(false);
   const startupUpdateCheckRef = useRef(false);
   /** 从 SkillNet 等入口跳转配置页时，首次展开对应配置分组（如第三方服务） */
   const [configInitialExpandGroup, setConfigInitialExpandGroup] = useState<string | null>(null);
@@ -901,6 +903,7 @@ function AppContent() {
     if (nav === 'skills') setHasVisitedSkills(true);
     if (nav === 'channels') setHasVisitedChannels(true);
     if (nav === 'socialstation') setHasVisitedSocialStation(true);
+    if (nav === 'appbuilder') setHasVisitedAppBuilder(true);
   }, []);
 
   const heartbeatToastPreviewRaw = heartbeatToastMessage.replace(/\s+/g, ' ').trim();
@@ -1075,6 +1078,30 @@ function AppContent() {
             <SocialStationWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
+        {hasVisitedAppBuilder && (
+          <div className={`app-section ${activeNav === 'appbuilder' ? '' : 'is-hidden'}`}>
+            <AppBuilderWorkspace onExit={() => setActiveNav('chat')} />
+          </div>
+        )}
+        {activeNav === 'crm' && (
+          <div className="app-section p-8 text-center text-text-muted">
+            <h2 className="text-xl mb-2">CRM</h2>
+            <p>Module under construction.</p>
+          </div>
+        )}
+        {activeNav === 'kanban' && (
+          <div className="app-section p-8 text-center text-text-muted">
+            <h2 className="text-xl mb-2">Kanban</h2>
+            <p>Module under construction.</p>
+          </div>
+        )}
+        {activeNav === 'projectflow' && (
+          <div className="app-section p-8 text-center text-text-muted">
+            <h2 className="text-xl mb-2">Project Flow</h2>
+            <p>Module under construction.</p>
+          </div>
+        )}
+
         {activeNav === 'extensions' && (
           <div className="app-section">
             <ExtensionsPanel isConnected={isConnected} />

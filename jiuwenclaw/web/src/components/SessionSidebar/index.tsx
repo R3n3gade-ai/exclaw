@@ -9,7 +9,7 @@ import { FEATURE_APP_UPDATER_UI } from '../../featureFlags';
 import { OffloadFilesWidget } from './OffloadFilesWidget';
 import './SessionSidebar.css';
 
-type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
+type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
 
 interface SessionSidebarProps {
   activeNav: MainNavKey;
@@ -39,6 +39,59 @@ export function SessionSidebar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
           {t('nav.chat')}
+        </button>
+      </div>
+
+
+      <div className="session-sidebar-group-title session-sidebar-group-title--with-top-gap">
+        {t('nav.features', 'Features')}
+      </div>
+      <div className="space-y-1 mb-4">
+        <button
+          onClick={() => onNavigate('appbuilder')}
+          className={`nav-item w-full ${activeNav === 'appbuilder' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+          </svg>
+          {t('nav.appBuilder', 'App Builder')}
+        </button>
+        <button
+          onClick={() => onNavigate('socialstation')}
+          className={`nav-item w-full ${activeNav === 'socialstation' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 4.5h9m-9 4.5h5.25" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5h15a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18V6a1.5 1.5 0 011.5-1.5z" />
+          </svg>
+          {t('nav.socialStation', 'Social Station')}
+        </button>
+        <button
+          onClick={() => onNavigate('crm')}
+          className={`nav-item w-full ${activeNav === 'crm' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+          </svg>
+          {t('nav.crm', 'CRM')}
+        </button>
+        <button
+          onClick={() => onNavigate('kanban')}
+          className={`nav-item w-full ${activeNav === 'kanban' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 4.5v15m6-15v15m-10.5-6h15m-15-6h15" />
+          </svg>
+          {t('nav.kanban', 'Kanban')}
+        </button>
+        <button
+          onClick={() => onNavigate('projectflow')}
+          className={`nav-item w-full ${activeNav === 'projectflow' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 006 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0118 16.5h-2.25m-7.5 0h7.5m-7.5 0l-1 3m8.5-3l1 3m0 0l.5 1.5m-.5-1.5h-9.5m0 0l-.5 1.5m.5-1.5H9" />
+          </svg>
+          {t('nav.projectFlow', 'Project Flow')}
         </button>
       </div>
 
@@ -100,16 +153,7 @@ export function SessionSidebar({
           </svg>
           {t('nav.channels')}
         </button>
-        <button
-          onClick={() => onNavigate('socialstation')}
-          className={`nav-item w-full ${activeNav === 'socialstation' ? 'active' : ''}`}
-        >
-          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 4.5h9m-9 4.5h5.25" />
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 4.5h15a1.5 1.5 0 011.5 1.5v12a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18V6a1.5 1.5 0 011.5-1.5z" />
-          </svg>
-          {t('nav.socialStation')}
-        </button>
+
         <button
           onClick={() => onNavigate('extensions')}
           className={`nav-item w-full ${activeNav === 'extensions' ? 'active' : ''}`}
