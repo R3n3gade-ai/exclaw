@@ -2,6 +2,7 @@ import { DragEvent, useMemo, useState } from 'react';
 import {
   useKanbanStore,
   type KanbanCard,
+  
 } from '../../stores/kanbanStore';
 import './KanbanWorkspace.css';
 
@@ -34,81 +35,70 @@ export function KanbanWorkspace({ onExit }: { onExit: () => void }) {
   const entries = useKanbanStore((state) => state.entries);
   const columns = useKanbanStore((state) => state.columns);
   const cards = useKanbanStore((state) => state.cards);
+  
   const addEntry = useKanbanStore((state) => state.addEntry);
-  const updateEntry = useKanbanStore((state) => state.updateEntry);
-  const deleteEntry = useKanbanStore((state) => state.deleteEntry);
-  const addEntrySubtask = useKanbanStore((state) => state.addEntrySubtask);
-  const updateEntrySubtask = useKanbanStore((state) => state.updateEntrySubtask);
-  const deleteEntrySubtask = useKanbanStore((state) => state.deleteEntrySubtask);
   const addColumn = useKanbanStore((state) => state.addColumn);
   const updateColumn = useKanbanStore((state) => state.updateColumn);
-  const deleteColumn = useKanbanStore((state) => state.deleteColumn);
-  const addManualCard = useKanbanStore((state) => state.addManualCard);
+  
+  const moveCard = useKanbanStore((state) => state.moveCard);
   const addCardFromEntry = useKanbanStore((state) => state.addCardFromEntry);
   const addCardFromSubtask = useKanbanStore((state) => state.addCardFromSubtask);
-  const updateCard = useKanbanStore((state) => state.updateCard);
-  const updateCardSubtask = useKanbanStore((state) => state.updateCardSubtask);
-  const addCardSubtask = useKanbanStore((state) => state.addCardSubtask);
-  const deleteCardSubtask = useKanbanStore((state) => state.deleteCardSubtask);
-  const moveCard = useKanbanStore((state) => state.moveCard);
-  const deleteCard = useKanbanStore((state) => state.deleteCard);
 
+  const [composerOpen, setComposerOpen] = useState(false);
   const [entryTitle, setEntryTitle] = useState('');
   const [entryNotes, setEntryNotes] = useState('');
-  const [subtaskDraft, setSubtaskDraft] = useState('');
   const [draftSubtasks, setDraftSubtasks] = useState<string[]>([]);
+  const [subtaskDraft, setSubtaskDraft] = useState('');
   const [columnDraft, setColumnDraft] = useState('');
-  const [entrySubtaskDrafts, setEntrySubtaskDrafts] = useState<Record<string, string>>({});
-  const [cardSubtaskDrafts, setCardSubtaskDrafts] = useState<Record<string, string>>({});
   const [dropColumnId, setDropColumnId] = useState<string | null>(null);
-  const [expandedEntryId, setExpandedEntryId] = useState<string | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
+
+  const [editingItem, setEditingItem] = useState<{type: 'entry', id: string} | {type: 'card', id: string} | null>(null);
 
   const columnCards = useMemo(() => {
-    return columns.reduce<Record<string, KanbanCard[]>>((accumulator, column) => {
-      accumulator[column.id] = cards.filter((card) => card.columnId === column.id);
-      return accumulator;
-    }, {});
-  }, [cards, columns]);
+    const result: Record<string, KanbanCard[]> = {};
+    for (const card of cards) {
+      if (!result[card.columnId]) result[card.columnId] = [];
+      result[card.columnId].push(card);
+    }
+    return result;
+  }, [cards]);
 
-  const boardCardCount = cards.length;
   const intakeCount = entries.length;
-  const totalSubentryCount = entries.reduce((total, entry) => total + entry.subtasks.length, 0);
-
-  const handleCreateEntry = () => {
-    if (!entryTitle.trim()) return;
-    addEntry({ title: entryTitle, notes: entryNotes, subtasks: draftSubtasks });
-    setEntryTitle('');
-    setEntryNotes('');
-    setSubtaskDraft('');
-    setDraftSubtasks([]);
-    setComposerOpen(false);
-  };
+  const totalSubentryCount = entries.reduce((acc, current) => acc + current.subtasks.length, 0);
+  const boardCardCount = cards.length;
 
   const handleAddDraftSubtask = () => {
-    const clean = subtaskDraft.trim();
-    if (!clean) return;
-    setDraftSubtasks((current) => [...current, clean]);
+    if (!subtaskDraft.trim()) return;
+    setDraftSubtasks((current) => [...current, subtaskDraft.trim()]);
     setSubtaskDraft('');
+  };
+
+  const handleCreateEntry = () => {
+    if (!entryTitle.trim() && !entryNotes.trim() && draftSubtasks.length === 0) {
+      setComposerOpen(false);
+      return;
+    }
+    addEntry({ title: entryTitle.trim(), notes: entryNotes.trim(), subtasks: draftSubtasks });
+    setEntryTitle('');
+    setEntryNotes('');
+    setDraftSubtasks([]);
+    setComposerOpen(false);
   };
 
   const handleColumnDrop = (columnId: string, event: DragEvent<HTMLElement>) => {
     event.preventDefault();
     setDropColumnId(null);
+
     const payload = getDragPayload(event);
     if (!payload) return;
 
-    if (payload.type === 'card') {
-      moveCard(payload.cardId, columnId);
-      return;
-    }
-
     if (payload.type === 'entry') {
       addCardFromEntry(payload.entryId, columnId);
-      return;
+    } else if (payload.type === 'subtask') {
+      addCardFromSubtask(payload.entryId, payload.subtaskId, columnId);
+    } else if (payload.type === 'card') {
+      moveCard(payload.cardId, columnId);
     }
-
-    addCardFromSubtask(payload.entryId, payload.subtaskId, columnId);
   };
 
   return (
@@ -207,114 +197,15 @@ export function KanbanWorkspace({ onExit }: { onExit: () => void }) {
               entries.map((entry) => (
                 <article
                   key={entry.id}
-                  className={`feature-kanban__entry-card ${expandedEntryId === entry.id ? 'is-expanded' : ''}`}
+                  className="feature-kanban__entry-card-minimal"
+                  draggable
+                  onDragStart={(event) => setDragPayload(event, { type: 'entry', entryId: entry.id })}
+                  onClick={() => setEditingItem({ type: 'entry', id: entry.id })}
                 >
-                  <div
-                    className="feature-kanban__entry-summary"
-                    draggable
-                    onDragStart={(event) => setDragPayload(event, { type: 'entry', entryId: entry.id })}
-                  >
-                    <button
-                      type="button"
-                      className="feature-kanban__entry-toggle"
-                      onClick={() => setExpandedEntryId((current) => (current === entry.id ? null : entry.id))}
-                      aria-label={expandedEntryId === entry.id ? 'Collapse task' : 'Expand task'}
-                      title={expandedEntryId === entry.id ? 'Collapse task' : 'Expand task'}
-                    >
-                      {expandedEntryId === entry.id ? '−' : '+'}
-                    </button>
-                    <input
-                      value={entry.title}
-                      onChange={(event) => updateEntry(entry.id, { title: event.target.value })}
-                      className="feature-kanban__entry-title feature-kanban__entry-title--compact"
-                      placeholder="Main task title"
-                    />
-                    <div className="feature-kanban__entry-meta">
-                      <span className="feature-kanban__entry-count">
-                        {entry.subtasks.length} sub
-                      </span>
-                      <button type="button" className="feature-kanban__mini-button" onClick={() => addCardFromEntry(entry.id)}>
-                        Add
-                      </button>
-                      <button type="button" className="feature-kanban__mini-button feature-kanban__mini-button--danger" onClick={() => deleteEntry(entry.id)}>
-                        ×
-                      </button>
-                    </div>
-                  </div>
-
-                  {expandedEntryId === entry.id && (
-                    <>
-                      <textarea
-                        value={entry.notes}
-                        onChange={(event) => updateEntry(entry.id, { notes: event.target.value })}
-                        className="feature-kanban__entry-notes feature-kanban__entry-notes--compact"
-                        placeholder="Task notes"
-                        rows={2}
-                      />
-
-                      <div className="feature-kanban__subentry-list feature-kanban__subentry-list--compact">
-                        {entry.subtasks.map((subtask) => (
-                          <div
-                            key={subtask.id}
-                            className="feature-kanban__subentry-row feature-kanban__subentry-row--compact"
-                            draggable
-                            onDragStart={(event) => setDragPayload(event, { type: 'subtask', entryId: entry.id, subtaskId: subtask.id })}
-                          >
-                            <input
-                              value={subtask.title}
-                              onChange={(event) => updateEntrySubtask(entry.id, subtask.id, event.target.value)}
-                              className="feature-kanban__subentry-input feature-kanban__subentry-input--bare"
-                              placeholder="Sub-task"
-                            />
-                            <button
-                              type="button"
-                              className="feature-kanban__mini-button"
-                              onClick={() => addCardFromSubtask(entry.id, subtask.id)}
-                            >
-                              Add
-                            </button>
-                            <button
-                              type="button"
-                              className="feature-kanban__mini-button feature-kanban__mini-button--danger"
-                              onClick={() => deleteEntrySubtask(entry.id, subtask.id)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="feature-kanban__subtask-composer feature-kanban__subtask-composer--compact">
-                        <input
-                          value={entrySubtaskDrafts[entry.id] ?? ''}
-                          onChange={(event) =>
-                            setEntrySubtaskDrafts((current) => ({ ...current, [entry.id]: event.target.value }))
-                          }
-                          className="feature-kanban__input feature-kanban__input--compact-row"
-                          placeholder="Add another sub-entry"
-                          onKeyDown={(event) => {
-                            if (event.key === 'Enter') {
-                              event.preventDefault();
-                              const draft = entrySubtaskDrafts[entry.id] ?? '';
-                              addEntrySubtask(entry.id, draft);
-                              setEntrySubtaskDrafts((current) => ({ ...current, [entry.id]: '' }));
-                            }
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="feature-kanban__ghost-button"
-                          onClick={() => {
-                            const draft = entrySubtaskDrafts[entry.id] ?? '';
-                            addEntrySubtask(entry.id, draft);
-                            setEntrySubtaskDrafts((current) => ({ ...current, [entry.id]: '' }));
-                          }}
-                        >
-                          Add
-                        </button>
-                      </div>
-                    </>
-                  )}
+                  <div className="feature-kanban__minimal-title">{entry.title || 'Untitled Task'}</div>
+                  {entry.subtasks.map(subtask => (
+                    <div key={subtask.id} className="feature-kanban__minimal-subtask">• {subtask.title}</div>
+                  ))}
                 </article>
               ))
             )}
@@ -325,8 +216,8 @@ export function KanbanWorkspace({ onExit }: { onExit: () => void }) {
       <section className="feature-kanban__board-shell">
         <div className="feature-kanban__board-toolbar">
           <div className="feature-kanban__board-heading">
-            <div className="feature-kanban__eyebrow">Kanban Board</div>
-            <h2 className="feature-kanban__panel-title feature-kanban__panel-title--board">Delivery Flow</h2>
+            <div className="feature-kanban__eyebrow">Production</div>
+            <h2 className="feature-kanban__panel-title feature-kanban__panel-title--board">Active Board</h2>
           </div>
           <div className="feature-kanban__board-stats">
             <div className="feature-kanban__stat-pill">{formatCountLabel(boardCardCount, 'card', 'cards')}</div>
@@ -388,18 +279,6 @@ export function KanbanWorkspace({ onExit }: { onExit: () => void }) {
                 />
                 <div className="feature-kanban__column-actions">
                   <span className="feature-kanban__column-count">{columnCards[column.id]?.length ?? 0}</span>
-                  <button type="button" className="feature-kanban__mini-button" onClick={() => addManualCard(column.id)}>
-                    +
-                  </button>
-                  <button
-                    type="button"
-                    className="feature-kanban__mini-button feature-kanban__mini-button--danger"
-                    onClick={() => deleteColumn(column.id)}
-                    disabled={columns.length <= 1}
-                    title={columns.length <= 1 ? 'Keep at least one column' : 'Delete column'}
-                  >
-                    ×
-                  </button>
                 </div>
               </div>
 
@@ -407,95 +286,221 @@ export function KanbanWorkspace({ onExit }: { onExit: () => void }) {
                 {(columnCards[column.id] ?? []).map((card) => (
                   <article
                     key={card.id}
-                    className="feature-kanban__board-card"
+                    className="feature-kanban__board-card-minimal"
                     draggable
                     onDragStart={(event) => setDragPayload(event, { type: 'card', cardId: card.id })}
+                    onClick={() => setEditingItem({ type: 'card', id: card.id })}
                   >
-                    <div className="feature-kanban__drag-hint">Drag to move between columns</div>
-                    {card.parentTitle && <div className="feature-kanban__card-parent">From {card.parentTitle}</div>}
-                    <input
-                      value={card.title}
-                      onChange={(event) => updateCard(card.id, { title: event.target.value })}
-                      className="feature-kanban__entry-title"
-                      placeholder="Card title"
-                    />
-                    <textarea
-                      value={card.notes}
-                      onChange={(event) => updateCard(card.id, { notes: event.target.value })}
-                      className="feature-kanban__entry-notes"
-                      placeholder="Card notes"
-                      rows={2}
-                    />
-
-                    {card.subtasks.length > 0 && (
-                      <div className="feature-kanban__subentry-list">
-                        {card.subtasks.map((subtask) => (
-                          <div key={subtask.id} className="feature-kanban__subentry-row feature-kanban__subentry-row--board">
-                            <span className="feature-kanban__subentry-bullet" aria-hidden="true" />
-                            <input
-                              value={subtask.title}
-                              onChange={(event) => updateCardSubtask(card.id, subtask.id, event.target.value)}
-                              className="feature-kanban__subentry-input"
-                              placeholder="Checklist item"
-                            />
-                            <button
-                              type="button"
-                              className="feature-kanban__mini-button feature-kanban__mini-button--danger"
-                              onClick={() => deleteCardSubtask(card.id, subtask.id)}
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="feature-kanban__subtask-composer">
-                      <input
-                        value={cardSubtaskDrafts[card.id] ?? ''}
-                        onChange={(event) =>
-                          setCardSubtaskDrafts((current) => ({ ...current, [card.id]: event.target.value }))
-                        }
-                        className="feature-kanban__input"
-                        placeholder="Add checklist item"
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter') {
-                            event.preventDefault();
-                            const draft = cardSubtaskDrafts[card.id] ?? '';
-                            addCardSubtask(card.id, draft);
-                            setCardSubtaskDrafts((current) => ({ ...current, [card.id]: '' }));
-                          }
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="feature-kanban__ghost-button"
-                        onClick={() => {
-                          const draft = cardSubtaskDrafts[card.id] ?? '';
-                          addCardSubtask(card.id, draft);
-                          setCardSubtaskDrafts((current) => ({ ...current, [card.id]: '' }));
-                        }}
-                      >
-                        Add item
-                      </button>
-                    </div>
-
-                    <div className="feature-kanban__entry-actions">
-                      <button type="button" className="feature-kanban__danger-button" onClick={() => deleteCard(card.id)}>
-                        Delete card
-                      </button>
-                    </div>
+                    <div className="feature-kanban__minimal-title">{card.title || 'Untitled Card'}</div>
+                    {card.parentTitle && <div className="feature-kanban__minimal-parent">From: {card.parentTitle}</div>}
+                    {card.subtasks.map(subtask => (
+                      <div key={subtask.id} className="feature-kanban__minimal-subtask">• {subtask.title}</div>
+                    ))}
                   </article>
                 ))}
-
-                {(columnCards[column.id] ?? []).length === 0 && (
-                  <div className="feature-kanban__drop-zone">Drop tasks here or create a new card.</div>
-                )}
               </div>
             </section>
           ))}
         </div>
       </section>
+
+      {editingItem && editingItem.type === 'entry' && (
+        <EditEntryModal entryId={editingItem.id} onClose={() => setEditingItem(null)} />
+      )}
+      {editingItem && editingItem.type === 'card' && (
+        <EditCardModal cardId={editingItem.id} onClose={() => setEditingItem(null)} />
+      )}
+    </div>
+  );
+}
+
+function EditEntryModal({ entryId, onClose }: { entryId: string, onClose: () => void }) {
+  const entries = useKanbanStore(state => state.entries);
+  const entry = entries.find(e => e.id === entryId);
+  const updateEntry = useKanbanStore(state => state.updateEntry);
+  const deleteEntry = useKanbanStore(state => state.deleteEntry);
+  const addEntrySubtask = useKanbanStore(state => state.addEntrySubtask);
+  const updateEntrySubtask = useKanbanStore(state => state.updateEntrySubtask);
+  const deleteEntrySubtask = useKanbanStore(state => state.deleteEntrySubtask);
+  const addCardFromEntry = useKanbanStore(state => state.addCardFromEntry);
+
+  const [subDraft, setSubDraft] = useState('');
+
+  if (!entry) return null;
+
+  return (
+    <div className="feature-kanban__modal-overlay" onClick={onClose}>
+      <div className="feature-kanban__modal-content" onClick={e => e.stopPropagation()}>
+        <div className="feature-kanban__modal-header">
+          <h2>Edit Task</h2>
+          <button className="feature-kanban__close-button" onClick={onClose}>×</button>
+        </div>
+        
+        <input 
+          className="feature-kanban__input feature-kanban__input--title" 
+          value={entry.title} 
+          onChange={e => updateEntry(entry.id, { title: e.target.value })} 
+          placeholder="Task title"
+        />
+        <textarea 
+          className="feature-kanban__textarea" 
+          value={entry.notes} 
+          onChange={e => updateEntry(entry.id, { notes: e.target.value })} 
+          placeholder="Task notes"
+          rows={4}
+        />
+        
+        <div className="feature-kanban__eyebrow">Sub-tasks</div>
+        <div className="feature-kanban__subentry-list">
+          {entry.subtasks.map(subtask => (
+            <div key={subtask.id} className="feature-kanban__subentry-row">
+              <input 
+                className="feature-kanban__subentry-input"
+                value={subtask.title}
+                onChange={e => updateEntrySubtask(entry.id, subtask.id, e.target.value)}
+              />
+              <button 
+                className="feature-kanban__mini-button feature-kanban__mini-button--danger"
+                onClick={() => deleteEntrySubtask(entry.id, subtask.id)}
+              >×</button>
+            </div>
+          ))}
+          <div className="feature-kanban__subtask-composer feature-kanban__subtask-composer--compact">
+            <input 
+              className="feature-kanban__input" 
+              placeholder="New sub-task" 
+              value={subDraft} 
+              onChange={e => setSubDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && subDraft.trim()) {
+                  e.preventDefault();
+                  addEntrySubtask(entry.id, subDraft.trim());
+                  setSubDraft('');
+                }
+              }}
+            />
+            <button 
+              className="feature-kanban__ghost-button"
+              onClick={() => {
+                if (subDraft.trim()) {
+                  addEntrySubtask(entry.id, subDraft.trim());
+                  setSubDraft('');
+                }
+              }}
+            >Add</button>
+          </div>
+        </div>
+
+        <div className="feature-kanban__board-toolbar" style={{ marginTop: '1rem' }}>
+          <button 
+            className="feature-kanban__primary-button" 
+            onClick={() => {
+              addCardFromEntry(entry.id);
+              onClose();
+            }}
+          >Send to Board</button>
+          
+          <button 
+            className="feature-kanban__danger-button" 
+            onClick={() => {
+              deleteEntry(entry.id);
+              onClose();
+            }}
+          >Delete Task</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditCardModal({ cardId, onClose }: { cardId: string, onClose: () => void }) {
+  const cards = useKanbanStore(state => state.cards);
+  const card = cards.find(c => c.id === cardId);
+  const updateCard = useKanbanStore(state => state.updateCard);
+  const deleteCard = useKanbanStore(state => state.deleteCard);
+  const addCardSubtask = useKanbanStore(state => state.addCardSubtask);
+  const updateCardSubtask = useKanbanStore(state => state.updateCardSubtask);
+  const deleteCardSubtask = useKanbanStore(state => state.deleteCardSubtask);
+
+  const [subDraft, setSubDraft] = useState('');
+
+  if (!card) return null;
+
+  return (
+    <div className="feature-kanban__modal-overlay" onClick={onClose}>
+      <div className="feature-kanban__modal-content" onClick={e => e.stopPropagation()}>
+        <div className="feature-kanban__modal-header">
+          <h2>Edit Board Card</h2>
+          <button className="feature-kanban__close-button" onClick={onClose}>×</button>
+        </div>
+        
+        {card.parentTitle && <div className="feature-kanban__minimal-parent">From: {card.parentTitle}</div>}
+        
+        <input 
+          className="feature-kanban__input feature-kanban__input--title" 
+          value={card.title} 
+          onChange={e => updateCard(card.id, { title: e.target.value })} 
+          placeholder="Card title"
+        />
+        <textarea 
+          className="feature-kanban__textarea" 
+          value={card.notes} 
+          onChange={e => updateCard(card.id, { notes: e.target.value })} 
+          placeholder="Card notes"
+          rows={4}
+        />
+        
+        <div className="feature-kanban__eyebrow">Sub-tasks</div>
+        <div className="feature-kanban__subentry-list">
+          {card.subtasks.map(subtask => (
+            <div key={subtask.id} className="feature-kanban__subentry-row">
+              <input 
+                className="feature-kanban__subentry-input"
+                value={subtask.title}
+                onChange={e => updateCardSubtask(card.id, subtask.id, e.target.value)}
+              />
+              <button 
+                className="feature-kanban__mini-button feature-kanban__mini-button--danger"
+                onClick={() => deleteCardSubtask(card.id, subtask.id)}
+              >×</button>
+            </div>
+          ))}
+          <div className="feature-kanban__subtask-composer feature-kanban__subtask-composer--compact">
+            <input 
+              className="feature-kanban__input" 
+              placeholder="New sub-task" 
+              value={subDraft} 
+              onChange={e => setSubDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && subDraft.trim()) {
+                  e.preventDefault();
+                  addCardSubtask(card.id, subDraft.trim());
+                  setSubDraft('');
+                }
+              }}
+            />
+            <button 
+              className="feature-kanban__ghost-button"
+              onClick={() => {
+                if (subDraft.trim()) {
+                  addCardSubtask(card.id, subDraft.trim());
+                  setSubDraft('');
+                }
+              }}
+            >Add</button>
+          </div>
+        </div>
+
+        <div className="feature-kanban__board-toolbar" style={{ marginTop: '1rem', justifyContent: 'flex-end' }}>
+          <button 
+            className="feature-kanban__danger-button" 
+            onClick={() => {
+              deleteCard(card.id);
+              onClose();
+            }}
+          >Delete Card</button>
+        </div>
+      </div>
     </div>
   );
 }
