@@ -20,7 +20,7 @@ import { BrowserPanel } from './components/BrowserPanel';
 import { UpdatePanel } from './components/UpdatePanel';
 import { StatusBar } from './components/StatusBar';
 import { ExtensionsPanel } from './components/ExtensionsPanel';
-import { SocialStationPanel } from './components/SocialStationPanel';
+import { SocialStationWorkspace } from './components/FeatureWorkspace/SocialStationWorkspace';
 import { FEATURE_APP_UPDATER_UI } from './featureFlags';
 import { HeartbeatMessageModal } from './features/HeartbeatMessageModal';
 import {
@@ -988,7 +988,7 @@ function AppContent() {
                 </div>
 
                 {/* Status Bar - 只在非集群模式下显示 */}
-                {mode !== 'agentteam' && (
+                {mode !== 'team' && (
                   <StatusBar
                     onPause={handlePause}
                     onCancel={handleCancel}
@@ -1072,7 +1072,7 @@ function AppContent() {
         )}
         {hasVisitedSocialStation && (
           <div className={`app-section ${activeNav === 'socialstation' ? '' : 'is-hidden'}`}>
-            <SocialStationPanel />
+            <SocialStationWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
         {activeNav === 'extensions' && (
