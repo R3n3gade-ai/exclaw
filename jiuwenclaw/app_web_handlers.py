@@ -8,6 +8,7 @@ import inspect
 import json
 import logging
 import os
+from pathlib import Path
 import re
 import secrets
 import shutil
@@ -1077,6 +1078,84 @@ def _register_web_handlers(bind: WebHandlersBindParams) -> None:
             logger.exception('[social.station.overview] %s', e)
             await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
 
+
+    def _app_builder_workspace_dir() -> Path:
+        ws_dir = get_user_workspace_dir() / 'app_builder_workspace'
+        ws_dir.mkdir(parents=True, exist_ok=True)
+        return ws_dir
+
+    async def _app_builder_workspace_list(ws, req_id, params, session_id):
+        try:
+            ws_dir = _app_builder_workspace_dir()
+            files = []
+            for root, _, filenames in os.walk(ws_dir):
+                for filename in filenames:
+                    rel_path = os.path.relpath(os.path.join(root, filename), ws_dir)
+                    files.append(rel_path)
+            await channel.send_response(ws, req_id, ok=True, payload={'files': files})
+        except Exception as e:
+            logger.exception('[app_builder.workspace.list] %s', e)
+            await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
+
+    async def _app_builder_workspace_read(ws, req_id, params, session_id):
+        try:
+            filepath = params.get('path')
+            if not filepath:
+                await channel.send_response(ws, req_id, ok=False, error='path required', code='BAD_REQUEST')
+                return
+            ws_dir = _app_builder_workspace_dir()
+            full_path = (ws_dir / filepath).resolve()
+            if not str(full_path).startswith(str(ws_dir)):
+                await channel.send_response(ws, req_id, ok=False, error='invalid path', code='BAD_REQUEST')
+                return
+            if not full_path.exists():
+                await channel.send_response(ws, req_id, ok=False, error='file not found', code='NOT_FOUND')
+                return
+            with open(full_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            await channel.send_response(ws, req_id, ok=True, payload={'path': filepath, 'content': content})
+        except Exception as e:
+            logger.exception('[app_builder.workspace.read] %s', e)
+            await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
+
+    async def _app_builder_workspace_write(ws, req_id, params, session_id):
+        try:
+            filepath = params.get('path')
+            content = params.get('content', '')
+            if not filepath:
+                await channel.send_response(ws, req_id, ok=False, error='path required', code='BAD_REQUEST')
+                return
+            ws_dir = _app_builder_workspace_dir()
+            full_path = (ws_dir / filepath).resolve()
+            if not str(full_path).startswith(str(ws_dir)):
+                await channel.send_response(ws, req_id, ok=False, error='invalid path', code='BAD_REQUEST')
+                return
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            await channel.send_response(ws, req_id, ok=True, payload={'path': filepath, 'status': 'written'})
+        except Exception as e:
+            logger.exception('[app_builder.workspace.write] %s', e)
+            await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
+
+    async def _app_builder_workspace_delete(ws, req_id, params, session_id):
+        try:
+            filepath = params.get('path')
+            if not filepath:
+                await channel.send_response(ws, req_id, ok=False, error='path required', code='BAD_REQUEST')
+                return
+            ws_dir = _app_builder_workspace_dir()
+            full_path = (ws_dir / filepath).resolve()
+            if not str(full_path).startswith(str(ws_dir)):
+                await channel.send_response(ws, req_id, ok=False, error='invalid path', code='BAD_REQUEST')
+                return
+            if full_path.exists() and full_path.is_file():
+                full_path.unlink()
+            await channel.send_response(ws, req_id, ok=True, payload={'path': filepath, 'status': 'deleted'})
+        except Exception as e:
+            logger.exception('[app_builder.workspace.delete] %s', e)
+            await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
+
     async def _channel_feishu_get_conf(ws, req_id, params, session_id):
         """返回 FeishuChannel 的当前配置（由 ChannelManager 管理）。"""
         cm = _resolve(channel_manager)
@@ -1714,6 +1793,11 @@ def _register_web_handlers(bind: WebHandlersBindParams) -> None:
     channel.register_method("heartbeat.set_conf", _heartbeat_set_conf)
     channel.register_method("heartbeat.get_path", _heartbeat_get_path)
     channel.register_method("social.station.overview", _social_station_overview)
+    channel.register_method("app_builder.workspace.list", _app_builder_workspace_list)
+    channel.register_method("app_builder.workspace.read", _app_builder_workspace_read)
+    channel.register_method("app_builder.workspace.write", _app_builder_workspace_write)
+    channel.register_method("app_builder.workspace.delete", _app_builder_workspace_delete)
+
     channel.register_method("channel.feishu.get_conf", _channel_feishu_get_conf)
     channel.register_method("channel.feishu.set_conf", _channel_feishu_set_conf)
     channel.register_method("channel.xiaoyi.get_conf", _channel_xiaoyi_get_conf)
