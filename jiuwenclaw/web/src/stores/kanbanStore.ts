@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { webRequest } from '../services/webClient';
 
 const STORAGE_KEY = 'deep_canvas_kanban_v1';
 
@@ -110,6 +111,7 @@ function loadSnapshot(): KanbanSnapshot {
 function persistSnapshot(snapshot: KanbanSnapshot): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    webRequest('kanban.state.set', snapshot as unknown as Record<string, unknown>).catch(() => {});
   } catch {
     // ignore storage failures
   }

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { webRequest } from '../services/webClient';
 
 const STORAGE_KEY = 'deep_canvas_crm_v1';
 
@@ -392,6 +393,7 @@ function loadSnapshot(): CrmSnapshot {
 function persistSnapshot(snapshot: CrmSnapshot): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    webRequest('crm.state.set', snapshot as unknown as Record<string, unknown>).catch(() => {});
   } catch {
     // ignore storage failures
   }

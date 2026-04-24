@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { webRequest } from '../services/webClient';
 import type { Edge, Node } from '@xyflow/react';
 import { MarkerType } from '@xyflow/react';
 
@@ -573,6 +574,7 @@ function loadSnapshot(): ProjectFlowSnapshot {
 function persistSnapshot(snapshot: ProjectFlowSnapshot): void {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    webRequest('projectflow.state.set', snapshot as unknown as Record<string, unknown>).catch(() => {});
   } catch {
     // ignore storage failures
   }

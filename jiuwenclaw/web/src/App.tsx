@@ -22,6 +22,9 @@ import { StatusBar } from './components/StatusBar';
 import { ExtensionsPanel } from './components/ExtensionsPanel';
 import { SocialStationWorkspace } from './components/FeatureWorkspace/SocialStationWorkspace';
 import { AppBuilderWorkspace } from './components/FeatureWorkspace/AppBuilderWorkspace';
+import { CrmWorkspace } from './components/FeatureWorkspace/CrmWorkspace';
+import { KanbanWorkspace } from './components/FeatureWorkspace/KanbanWorkspace';
+import { ProjectFlowWorkspace } from './components/FeatureWorkspace/projectFlow/ProjectFlowWorkspace';
 import { FEATURE_APP_UPDATER_UI } from './featureFlags';
 import { HeartbeatMessageModal } from './features/HeartbeatMessageModal';
 import {
@@ -247,6 +250,9 @@ function AppContent() {
   const [hasVisitedChannels, setHasVisitedChannels] = useState(false);
   const [hasVisitedSocialStation, setHasVisitedSocialStation] = useState(false);
   const [hasVisitedAppBuilder, setHasVisitedAppBuilder] = useState(false);
+  const [hasVisitedCrm, setHasVisitedCrm] = useState(false);
+  const [hasVisitedKanban, setHasVisitedKanban] = useState(false);
+  const [hasVisitedProjectFlow, setHasVisitedProjectFlow] = useState(false);
   const startupUpdateCheckRef = useRef(false);
   /** 从 SkillNet 等入口跳转配置页时，首次展开对应配置分组（如第三方服务） */
   const [configInitialExpandGroup, setConfigInitialExpandGroup] = useState<string | null>(null);
@@ -904,6 +910,9 @@ function AppContent() {
     if (nav === 'channels') setHasVisitedChannels(true);
     if (nav === 'socialstation') setHasVisitedSocialStation(true);
     if (nav === 'appbuilder') setHasVisitedAppBuilder(true);
+    if (nav === 'crm') setHasVisitedCrm(true);
+    if (nav === 'kanban') setHasVisitedKanban(true);
+    if (nav === 'projectflow') setHasVisitedProjectFlow(true);
   }, []);
 
   const heartbeatToastPreviewRaw = heartbeatToastMessage.replace(/\s+/g, ' ').trim();
@@ -1083,22 +1092,19 @@ function AppContent() {
             <AppBuilderWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
-        {activeNav === 'crm' && (
-          <div className="app-section p-8 text-center text-text-muted">
-            <h2 className="text-xl mb-2">CRM</h2>
-            <p>Module under construction.</p>
+        {hasVisitedCrm && (
+          <div className={`app-section ${activeNav === 'crm' ? '' : 'is-hidden'}`}>
+            <CrmWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
-        {activeNav === 'kanban' && (
-          <div className="app-section p-8 text-center text-text-muted">
-            <h2 className="text-xl mb-2">Kanban</h2>
-            <p>Module under construction.</p>
+        {hasVisitedKanban && (
+          <div className={`app-section ${activeNav === 'kanban' ? '' : 'is-hidden'}`}>
+            <KanbanWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
-        {activeNav === 'projectflow' && (
-          <div className="app-section p-8 text-center text-text-muted">
-            <h2 className="text-xl mb-2">Project Flow</h2>
-            <p>Module under construction.</p>
+        {hasVisitedProjectFlow && (
+          <div className={`app-section ${activeNav === 'projectflow' ? '' : 'is-hidden'}`}>
+            <ProjectFlowWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
 

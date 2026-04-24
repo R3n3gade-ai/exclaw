@@ -1156,6 +1156,79 @@ def _register_web_handlers(bind: WebHandlersBindParams) -> None:
             logger.exception('[app_builder.workspace.delete] %s', e)
             await channel.send_response(ws, req_id, ok=False, error=str(e), code='INTERNAL_ERROR')
 
+
+    def _crm_state_path() -> str:
+        return str(get_user_workspace_dir() / 'crm_state.json')
+
+    def _kanban_state_path() -> str:
+        return str(get_user_workspace_dir() / 'kanban_state.json')
+
+    def _projectflow_state_path() -> str:
+        return str(get_user_workspace_dir() / 'projectflow_state.json')
+
+    async def _crm_state_get(ws, req_id, params, session_id):
+        state_path = _crm_state_path()
+        payload = {}
+        if os.path.exists(state_path):
+            try:
+                with open(state_path, 'r', encoding='utf-8') as f:
+                    payload = json.load(f)
+            except Exception as exc:
+                logger.warning('[crm.state.get] failed: %s', exc)
+        await channel.send_response(ws, req_id, ok=True, payload=payload)
+
+    async def _crm_state_set(ws, req_id, params, session_id):
+        state_path = _crm_state_path()
+        try:
+            with open(state_path, 'w', encoding='utf-8') as f:
+                json.dump(params, f, ensure_ascii=False)
+            await channel.send_response(ws, req_id, ok=True, payload={'status': 'saved'})
+        except Exception as exc:
+            logger.warning('[crm.state.set] failed: %s', exc)
+            await channel.send_response(ws, req_id, ok=False, error=str(exc))
+
+    async def _kanban_state_get(ws, req_id, params, session_id):
+        state_path = _kanban_state_path()
+        payload = {}
+        if os.path.exists(state_path):
+            try:
+                with open(state_path, 'r', encoding='utf-8') as f:
+                    payload = json.load(f)
+            except Exception as exc:
+                logger.warning('[kanban.state.get] failed: %s', exc)
+        await channel.send_response(ws, req_id, ok=True, payload=payload)
+
+    async def _kanban_state_set(ws, req_id, params, session_id):
+        state_path = _kanban_state_path()
+        try:
+            with open(state_path, 'w', encoding='utf-8') as f:
+                json.dump(params, f, ensure_ascii=False)
+            await channel.send_response(ws, req_id, ok=True, payload={'status': 'saved'})
+        except Exception as exc:
+            logger.warning('[kanban.state.set] failed: %s', exc)
+            await channel.send_response(ws, req_id, ok=False, error=str(exc))
+            
+    async def _projectflow_state_get(ws, req_id, params, session_id):
+        state_path = _projectflow_state_path()
+        payload = {}
+        if os.path.exists(state_path):
+            try:
+                with open(state_path, 'r', encoding='utf-8') as f:
+                    payload = json.load(f)
+            except Exception as exc:
+                logger.warning('[projectflow.state.get] failed: %s', exc)
+        await channel.send_response(ws, req_id, ok=True, payload=payload)
+
+    async def _projectflow_state_set(ws, req_id, params, session_id):
+        state_path = _projectflow_state_path()
+        try:
+            with open(state_path, 'w', encoding='utf-8') as f:
+                json.dump(params, f, ensure_ascii=False)
+            await channel.send_response(ws, req_id, ok=True, payload={'status': 'saved'})
+        except Exception as exc:
+            logger.warning('[projectflow.state.set] failed: %s', exc)
+            await channel.send_response(ws, req_id, ok=False, error=str(exc))
+
     async def _channel_feishu_get_conf(ws, req_id, params, session_id):
         """返回 FeishuChannel 的当前配置（由 ChannelManager 管理）。"""
         cm = _resolve(channel_manager)
@@ -1797,6 +1870,14 @@ def _register_web_handlers(bind: WebHandlersBindParams) -> None:
     channel.register_method("app_builder.workspace.read", _app_builder_workspace_read)
     channel.register_method("app_builder.workspace.write", _app_builder_workspace_write)
     channel.register_method("app_builder.workspace.delete", _app_builder_workspace_delete)
+
+
+    channel.register_method("crm.state.get", _crm_state_get)
+    channel.register_method("crm.state.set", _crm_state_set)
+    channel.register_method("kanban.state.get", _kanban_state_get)
+    channel.register_method("kanban.state.set", _kanban_state_set)
+    channel.register_method("projectflow.state.get", _projectflow_state_get)
+    channel.register_method("projectflow.state.set", _projectflow_state_set)
 
     channel.register_method("channel.feishu.get_conf", _channel_feishu_get_conf)
     channel.register_method("channel.feishu.set_conf", _channel_feishu_set_conf)
