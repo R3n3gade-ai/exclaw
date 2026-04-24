@@ -1,7 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { webRequest } from '../../services/webClient';
+import { webRequest, webClient, type WsEvent } from '../../services/webClient';
+import { useSessionStore } from '../../stores/sessionStore';
 import './AppBuilderWorkspace.css';
+
+interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 
 export function AppBuilderWorkspace({ onExit }: { onExit: () => void }) {
@@ -10,6 +16,54 @@ export function AppBuilderWorkspace({ onExit }: { onExit: () => void }) {
   const [activeFile, setActiveFile] = useState<string>('index.html');
   const [fileContent, setFileContent] = useState<string>('<!-- Loading... -->');
   const [chatInput, setChatInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { role: 'assistant', content: 'Hello! I am Pi, your App Builder assistant. What are we building today?' }
+  ]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const currentMessageRef = useRef<string>('');
+  
+  const globalSessionId = useSessionStore(state => state.currentSession?.session_id || 'default');
+  const piSessionId = 'pi_builder_' + globalSessionId;
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    const onDelta = (event: WsEvent) => {
+      const payload = event.payload as { session_id?: string, content?: string };
+      if (payload.session_id === piSessionId) {
+        currentMessageRef.current += (payload.content || '');
+        setMessages(prev => {
+          const last = prev[prev.length - 1];
+          if (last && last.role === 'assistant') {
+            return [...prev.slice(0, -1), { role: 'assistant', content: currentMessageRef.current }];
+          }
+          return [...prev, { role: 'assistant', content: currentMessageRef.current }];
+        });
+      }
+    };
+
+    const onFinal = (event: WsEvent) => {
+      const payload = event.payload as { session_id?: string };
+      if (payload.session_id === piSessionId) {
+        setIsProcessing(false);
+      }
+    };
+
+    const unsubDelta = webClient.on('chat.delta', onDelta);
+    const unsubFinal = webClient.on('chat.final', onFinal);
+    const unsubChunk = webClient.on('chat.message_chunk', onDelta); // For our custom backend implementation
+
+    return () => {
+      unsubDelta();
+      unsubFinal();
+      unsubChunk();
+    };
+  }, [piSessionId]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Poll workspace files
@@ -76,12 +130,25 @@ export function AppBuilderWorkspace({ onExit }: { onExit: () => void }) {
     return 'html';
   };
 
-  // Chat integration mock - we will wire it up properly later
-  const handleSendMessage = () => {
-    if (!chatInput.trim()) return;
+  // Chat integration
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isProcessing) return;
+    const msg = chatInput.trim();
     setChatInput('');
-    // TODO: Send to pi_builder agent
-    alert("Chat wiring pending - message: " + chatInput);
+    setMessages(prev => [...prev, { role: 'user', content: msg }]);
+    setIsProcessing(true);
+    currentMessageRef.current = '';
+    
+    try {
+      await webRequest('chat.send', {
+        session_id: piSessionId,
+        content: msg,
+        mode: 'pi_builder'
+      });
+    } catch (e) {
+      console.error('Failed to send to Pi:', e);
+      setIsProcessing(false);
+    }
   };
   return (
     <div className="app-builder-workspace">
@@ -92,9 +159,13 @@ export function AppBuilderWorkspace({ onExit }: { onExit: () => void }) {
         </div>
         <div className="app-builder-chat">
           <div className="chat-messages">
-            <div className="message assistant">
-              Hello! I am Pi, your App Builder assistant. What are we building today?
-            </div>
+            {messages.map((msg, i) => (
+              <div key={i} className={`message ${msg.role}`}>
+                {msg.content}
+              </div>
+            ))}
+            {isProcessing && <div className="message assistant text-text-muted">...</div>}
+            <div ref={messagesEndRef} />
           </div>
           <div className="chat-input-area">
             <input 

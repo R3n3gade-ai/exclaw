@@ -2712,6 +2712,92 @@ class JiuWenClawDeepAdapter:
         query = request.params.get("query", "")
         mode = request.params.get("mode", "agent.plan")
 
+
+        # Pi Builder 模式处理
+        if mode == "pi_builder":
+            yield AgentResponseChunk(
+                request_id=request.request_id,
+                channel_id=request.channel_id,
+                payload={"event_type": "chat.start"},
+            )
+            # 加载系统提示词
+            from jiuwenclaw.utils import get_agent_root_dir
+            from pathlib import Path
+            pi_agent_dir = get_agent_root_dir() / "pi_builder"
+            
+            system_prompt = "You are Pi."
+            if (pi_agent_dir / "IDENTITY_EN.md").exists():
+                system_prompt = (pi_agent_dir / "IDENTITY_EN.md").read_text(encoding="utf-8")
+            if (pi_agent_dir / "SOUL_EN.md").exists():
+                system_prompt += "
+
+" + (pi_agent_dir / "SOUL_EN.md").read_text(encoding="utf-8")
+            if (pi_agent_dir / "AGENT_EN.md").exists():
+                system_prompt += "
+
+" + (pi_agent_dir / "AGENT_EN.md").read_text(encoding="utf-8")
+
+            # 组装 messages
+            messages = [{"role": "system", "content": system_prompt}]
+            
+            # 读取一点历史记录？TODO
+            messages.append({"role": "user", "content": query})
+            
+            full_response = ""
+            try:
+                # model client 已经在 self._model 里了
+                async for chunk in self._model.stream(messages):
+                    text = getattr(chunk, "content", "") or ""
+                    full_response += text
+                    yield AgentResponseChunk(
+                        request_id=request.request_id,
+                        channel_id=request.channel_id,
+                        payload={
+                            "event_type": "chat.message_chunk",
+                            "content": text,
+                            "type": "message",
+                            "role": "assistant"
+                        }
+                    )
+            except Exception as e:
+                logger.exception("Pi Builder stream failed: %s", e)
+                yield AgentResponseChunk(
+                    request_id=request.request_id,
+                    channel_id=request.channel_id,
+                    payload={"event_type": "chat.error", "error": str(e)},
+                    is_complete=True,
+                )
+                return
+
+            yield AgentResponseChunk(
+                request_id=request.request_id,
+                channel_id=request.channel_id,
+                payload={"event_type": "chat.final", "content": full_response},
+                is_complete=True,
+            )
+            
+            # 顺便解析出所有的 ```file:xxx ... ``` 并自动保存！
+            import re
+            from jiuwenclaw.utils import get_user_workspace_dir
+            file_blocks = re.findall(r'```file:([^
+]+)
+(.*?)
+```', full_response, re.DOTALL)
+            if file_blocks:
+                ws_dir = get_user_workspace_dir() / "app_builder_workspace"
+                ws_dir.mkdir(parents=True, exist_ok=True)
+                for filepath, file_content in file_blocks:
+                    filepath = filepath.strip()
+                    try:
+                        target = (ws_dir / filepath).resolve()
+                        if str(target).startswith(str(ws_dir)):
+                            target.parent.mkdir(parents=True, exist_ok=True)
+                            target.write_text(file_content, encoding="utf-8")
+                            logger.info(f"[Pi Builder] Auto-saved file: {filepath}")
+                    except Exception as fe:
+                        logger.warning(f"[Pi Builder] Failed to auto-save file {filepath}: {fe}")
+            return
+
         # Team 模式处理
         if mode == "team":
             from jiuwenclaw.agentserver.deep_agent.team_helpers import process_team_message_stream

@@ -147,6 +147,7 @@ class Mode(Enum):
     CODE_PLAN = "code.plan"
     CODE_NORMAL = "code.normal"
     TEAM = "team"
+    PI_BUILDER = "pi_builder"
 
     @classmethod
     def from_raw(cls, raw_mode: Any, default: "Mode | None" = None) -> "Mode":
