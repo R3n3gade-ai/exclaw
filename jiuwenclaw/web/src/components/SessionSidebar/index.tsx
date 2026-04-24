@@ -9,7 +9,7 @@ import { FEATURE_APP_UPDATER_UI } from '../../featureFlags';
 import { OffloadFilesWidget } from './OffloadFilesWidget';
 import './SessionSidebar.css';
 
-type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
+type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'meetings' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
 
 interface SessionSidebarProps {
   activeNav: MainNavKey;
@@ -93,6 +93,17 @@ export function SessionSidebar({
           </svg>
           {t('nav.projectFlow', 'Project Flow')}
         </button>
+
+        <button
+          onClick={() => onNavigate('meetings')}
+          className={`nav-item w-full ${activeNav === 'meetings' ? 'active' : ''}`}
+        >
+          <svg className="w-4 h-4 nav-item__icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
+            <path strokeLinecap="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          {t('nav.meetings', 'Video Meetings')}
+        </button>
+
       </div>
 
       <div className="session-sidebar-group-title">

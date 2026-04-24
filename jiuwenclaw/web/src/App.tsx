@@ -25,6 +25,7 @@ import { AppBuilderWorkspace } from './components/FeatureWorkspace/AppBuilderWor
 import { CrmWorkspace } from './components/FeatureWorkspace/CrmWorkspace';
 import { KanbanWorkspace } from './components/FeatureWorkspace/KanbanWorkspace';
 import { ProjectFlowWorkspace } from './components/FeatureWorkspace/projectFlow/ProjectFlowWorkspace';
+import { MeetingWorkspace } from './components/FeatureWorkspace/MeetingWorkspace';
 import { FEATURE_APP_UPDATER_UI } from './featureFlags';
 import { HeartbeatMessageModal } from './features/HeartbeatMessageModal';
 import {
@@ -45,7 +46,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from './i18n';
 import './App.css';
 
-type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
+type MainNavKey = 'chat' | 'skills' | 'agents' | 'sessions' | 'heartbeat' | 'cron' | 'channels' | 'socialstation' | 'appbuilder' | 'crm' | 'kanban' | 'projectflow' | 'meetings' | 'extensions' | 'configpanel' | 'logspanel' | 'browserpanel' | 'updatepanel';
 
 // 错误边界组件
 interface ErrorBoundaryState {
@@ -253,6 +254,7 @@ function AppContent() {
   const [hasVisitedCrm, setHasVisitedCrm] = useState(false);
   const [hasVisitedKanban, setHasVisitedKanban] = useState(false);
   const [hasVisitedProjectFlow, setHasVisitedProjectFlow] = useState(false);
+  const [hasVisitedMeetings, setHasVisitedMeetings] = useState(false);
   const startupUpdateCheckRef = useRef(false);
   /** 从 SkillNet 等入口跳转配置页时，首次展开对应配置分组（如第三方服务） */
   const [configInitialExpandGroup, setConfigInitialExpandGroup] = useState<string | null>(null);
@@ -913,6 +915,7 @@ function AppContent() {
     if (nav === 'crm') setHasVisitedCrm(true);
     if (nav === 'kanban') setHasVisitedKanban(true);
     if (nav === 'projectflow') setHasVisitedProjectFlow(true);
+    if (nav === 'meetings') setHasVisitedMeetings(true);
   }, []);
 
   const heartbeatToastPreviewRaw = heartbeatToastMessage.replace(/\s+/g, ' ').trim();
@@ -1105,6 +1108,11 @@ function AppContent() {
         {hasVisitedProjectFlow && (
           <div className={`app-section ${activeNav === 'projectflow' ? '' : 'is-hidden'}`}>
             <ProjectFlowWorkspace onExit={() => setActiveNav('chat')} />
+          </div>
+        )}
+        {hasVisitedMeetings && (
+          <div className={`app-section ${activeNav === 'meetings' ? '' : 'is-hidden'}`}>
+            <MeetingWorkspace onExit={() => setActiveNav('chat')} />
           </div>
         )}
 
